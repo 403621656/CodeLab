@@ -1,11 +1,15 @@
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-import secrets
+from pydantic import BaseModel
+from core.config import settings
 
 app = FastAPI()
 
 bearer = HTTPBearer(auto_error=False)
-secret_key = secrets.token_urlsafe(32)
+secret_key = settings.SECRET_KEY
+
+class BearerToken(BaseModel):
+    token: str
 
 def require_fixed_token(
         cred: HTTPAuthorizationCredentials|None = Depends(bearer)
@@ -20,9 +24,9 @@ def require_fixed_token(
 @app.get("/test-token")
 async def test_token(
         cred: HTTPAuthorizationCredentials = Depends(require_fixed_token)
-):
-    return cred.credentials
+) -> HTTPAuthorizationCredentials:
+    return cred
 
 @app.get("/token")
-async def get_token():
-    return {"token": secret_key}
+async def get_token() -> BearerToken:
+    return BearerToken.model_validate({"token": secret_key})

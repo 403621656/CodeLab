@@ -1,5 +1,5 @@
 [project]
-name = "new-code"
+name = "CodeLab"
 version = "0.1.0"
 description = "Junplus CodeLab"
 requires-python = ">=3.14"
