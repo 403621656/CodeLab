@@ -1,12 +1,12 @@
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
-import secrets
 from pydantic import BaseModel
+from core.config import settings
 
 app = FastAPI()
 
 bearer = HTTPBearer(auto_error=False)
-secret_key = secrets.token_urlsafe(32)
+secret_key = settings.SECRET_KEY
 
 class BearerToken(BaseModel):
     token: str
