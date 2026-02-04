@@ -5,6 +5,11 @@ from models import UserCreate, User, UserUpdate, Users
 from core.security import get_password_hash, verify_password
 
 
+class UserNotFound(Exception):
+    def __init__(self, user_id: uuid.UUID):
+        self.user_id = user_id
+
+
 def get_users(
     *,
     session: Session,
@@ -17,6 +22,12 @@ def get_users(
     users = session.exec(statement).all()
     return Users(data=users, count=count)
 
+def delete_user(*, user_id: uuid.UUID, session: Session) -> None:
+    user_db = session.get(User, user_id)
+    if not user_db:
+        raise UserNotFound(user_id)
+    session.delete(user_db)
+    session.commit()
 
 
 def create_user(*, user_create: UserCreate, session: Session) -> User:
