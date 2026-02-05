@@ -76,7 +76,3 @@ def update_user(*, user_in: UserUpdate, user_id: uuid.UUID, session: Session) ->
     session.commit()
     session.refresh(db_user)
     return db_user
-
-
-
-
