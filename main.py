@@ -1,15 +1,28 @@
 from fastapi import FastAPI, HTTPException, Depends
 from fastapi.security import HTTPBearer, HTTPAuthorizationCredentials
 from pydantic import BaseModel
-from core.config import settings
+from contextlib import asynccontextmanager
 
-app = FastAPI()
+from core.config import settings
+from core.db import create_db_and_tables
+from api import main
+
+
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    create_db_and_tables()
+    yield
+
+app = FastAPI(lifespan=lifespan)
+app.include_router(main.router)
 
 bearer = HTTPBearer(auto_error=False)
 secret_key = settings.SECRET_KEY
 
+
 class BearerToken(BaseModel):
     token: str
+
 
 def require_fixed_token(
         cred: HTTPAuthorizationCredentials|None = Depends(bearer)
@@ -26,6 +39,7 @@ async def test_token(
         cred: HTTPAuthorizationCredentials = Depends(require_fixed_token)
 ) -> HTTPAuthorizationCredentials:
     return cred
+
 
 @app.get("/token")
 async def get_token() -> BearerToken:
