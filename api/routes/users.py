@@ -1,6 +1,7 @@
 import uuid
 import crud
 
+from crud import UserNotFound, UserAlreadyExists
 from fastapi import APIRouter, HTTPException
 
 from api.deps import SessionDeps
@@ -52,9 +53,9 @@ def read_user_by_id(*, session: SessionDeps, user_id: uuid.UUID) -> UserPublic |
 def update_user(*, session: SessionDeps, user_id: uuid.UUID, user_in: UserUpdate) -> UserPublic:
     try:
         user = crud.update_user(session=session, user_id=user_id, user_in=user_in)
-    except crud.UserNotFound:
+    except UserNotFound:
         raise HTTPException(status_code=404, detail="User not found")
-    except crud.UserAlreadyExists:
+    except UserAlreadyExists:
         raise HTTPException(status_code=409, detail="User with this email already exists")
     return user
 
@@ -63,7 +64,7 @@ def update_user(*, session: SessionDeps, user_id: uuid.UUID, user_in: UserUpdate
 def delete_user(*, session: SessionDeps, user_id: uuid.UUID) -> Message:
     try:
         crud.delete_user(session=session, user_id=user_id)
-    except crud.UserNotFound:
+    except UserNotFound:
         raise HTTPException(status_code=404, detail="User not found")
     return Message(message="User has been deleted!")
 
