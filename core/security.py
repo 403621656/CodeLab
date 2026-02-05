@@ -1,6 +1,6 @@
 from pwdlib import PasswordHash
 
-from config import settings
+from core.config import settings
 
 
 password_hash = PasswordHash.recommended()
