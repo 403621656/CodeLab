@@ -4,7 +4,6 @@ from fastapi import Depends, HTTPException
 from fastapi.security import HTTPAuthorizationCredentials, HTTPBearer
 from collections.abc import Generator
 
-
 from core.db import engine
 from core.security import local_token
 
