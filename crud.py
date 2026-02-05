@@ -1,13 +1,31 @@
 import uuid
 
+from pydantic import EmailStr
 from sqlmodel import Session, select, func
+
 from models import UserCreate, User, UserUpdate, Users
-from core.security import get_password_hash, verify_password
+from core.security import get_password_hash
 
 
 class UserNotFound(Exception):
     def __init__(self, user_id: uuid.UUID):
         self.user_id = user_id
+
+
+class UserAlreadyExists(Exception):
+    def __init__(self, user_id: uuid.UUID):
+        self.user_id = user_id
+
+
+def get_user_by_id(*, user_id: uuid.UUID, session: Session) -> User | None:
+    db_user = session.get(User, user_id)
+    return db_user
+
+
+def get_user_by_email(*, email: EmailStr, session: Session) -> User | None:
+    statement = select(User).where(User.email == email)
+    db_user = session.exec(statement).first()
+    return db_user
 
 
 def get_users(
@@ -21,6 +39,7 @@ def get_users(
     statement = select(User).offset(skip).limit(limit)
     users = session.exec(statement).all()
     return Users(data=users, count=count)
+
 
 def delete_user(*, user_id: uuid.UUID, session: Session) -> None:
     user_db = session.get(User, user_id)
@@ -40,8 +59,15 @@ def create_user(*, user_create: UserCreate, session: Session) -> User:
     return db_obj
 
 
-def update_user(*, user_update: UserUpdate, db_user:User, session: Session) -> User:
-    user_data = user_update.model_dump(exclude_unset=True)
+def update_user(*, user_in: UserUpdate, user_id: uuid.UUID, session: Session) -> User:
+    db_user = get_user_by_id(user_id=user_id, session=session)
+    if not db_user:
+        raise UserNotFound(user_id)
+    if user_in.email:
+        existing_user = get_user_by_email(email=user_in.email, session=session)
+        if existing_user and existing_user.id != user_id:
+            raise UserAlreadyExists(existing_user.id)
+    user_data = user_in.model_dump(exclude_unset=True)
     extra_data = {}
     if "password" in user_data:
         password = user_data["password"]
@@ -52,23 +78,5 @@ def update_user(*, user_update: UserUpdate, db_user:User, session: Session) -> U
     return db_user
 
 
-def get_user_by_email(*, email: str, session: Session) -> User | None:
-    statement = select(User).where(User.email == email)
-    db_user = session.exec(statement).first()
-    return db_user
-
-
-def get_user_by_id(*, user_id: uuid.UUID, session: Session) -> User | None:
-    db_user = session.get(User, user_id)
-    return db_user
-
-
-def authenticate(*, email: str, password: str, session: Session) -> User | None:
-    db_user = get_user_by_email(email=email, session=session)
-    if not db_user:
-        return None
-    if not verify_password(password, db_user.hashed_password):
-        return None
-    return db_user
 
 
