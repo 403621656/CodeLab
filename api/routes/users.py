@@ -67,4 +67,3 @@ def delete_user(*, session: SessionDeps, user_id: uuid.UUID) -> Message:
     except UserNotFound:
         raise HTTPException(status_code=404, detail="User not found")
     return Message(message="User has been deleted!")
-

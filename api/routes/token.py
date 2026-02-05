@@ -5,6 +5,7 @@ from models import BearerToken
 from core.security import local_token
 from api.deps import TokenDeps
 
+
 router = APIRouter(prefix="/token", tags=["Token"])
 
 
