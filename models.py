@@ -1,7 +1,7 @@
 import uuid
 
 from sqlmodel import SQLModel, Field
-from pydantic import EmailStr
+from pydantic import EmailStr, BaseModel
 
 
 class UserBase(SQLModel):
@@ -56,3 +56,7 @@ class UsersPublic(SQLModel):
 
 class Message(SQLModel):
     message: str
+
+
+class BearerToken(BaseModel):
+    token: str
