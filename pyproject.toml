@@ -4,6 +4,7 @@ version = "0.1.0"
 description = "Junplus CodeLab"
 requires-python = ">=3.14"
 dependencies = [
+    "alembic>=1.18.3",
     "fastapi[standard]>=0.128.0",
     "psycopg>=3.3.2",
     "pwdlib[argon2]>=0.3.0",
