@@ -17,7 +17,7 @@ bearer = HTTPBearer(auto_error=False)
 
 
 def require_fixed_token(
-        cred: HTTPAuthorizationCredentials|None = Depends(bearer)
+        cred: HTTPAuthorizationCredentials | None = Depends(bearer)
 ) -> HTTPAuthorizationCredentials:
     if cred is None or cred.scheme.lower() != "bearer":
         raise HTTPException(status_code=401, detail="Missing token")
