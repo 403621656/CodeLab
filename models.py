@@ -57,3 +57,7 @@ class UsersPublic(SQLModel):
 
 class Message(SQLModel):
     message: str
+
+
+class BearerToken(SQLModel):
+    token: str
