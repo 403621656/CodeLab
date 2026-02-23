@@ -2,6 +2,7 @@ import uuid
 
 from pydantic import EmailStr
 from sqlmodel import Session, select, func
+from typing import Any, Literal
 
 from models import UserCreate, User, UserUpdate, Users
 from core.security import get_password_hash
@@ -33,12 +34,45 @@ def get_users(
     session: Session,
     skip: int=0,
     limit: int=100,
+    sort_field: str | None =None,
+    sort_order: Literal["asc", "desc"]="asc",
+    filters: dict[str, tuple[str, Any]] | None=None,
     ) -> Users:
-    statement_count = select(func.count()).select_from(User)
-    count = session.exec(statement_count).one()
-    statement = select(User).offset(skip).limit(limit)
+    statement = select(User)
+    if filters:
+        for field_name, (operator, value) in filters.items():
+            if not hasattr(User, field_name):
+                continue
+            column = getattr(User, field_name)
+
+            if operator == "eq":
+                statement = statement.where(column == value)
+            elif operator == "ne":
+                statement = statement.where(column != value)
+            elif operator == "lt":
+                statement = statement.where(column < value)
+            elif operator == "lte":
+                statement = statement.where(column <= value)
+            elif operator == "gt":
+                statement = statement.where(column > value)
+            elif operator == "gte":
+                statement = statement.where(column >= value)
+            elif operator == "like":
+                statement = statement.where(column.ilike(f"%{value}%"))
+
+    count_statement = select(func.count()).select_from(statement)
+    count = session.exec(count_statement).one()
+
+    if sort_field and hasattr(User, sort_field):
+        column = getattr(User, sort_field)
+        if sort_order == "asc":
+            statement = statement.order_by(column.asc())
+        else:
+            statement = statement.order_by(column.desc())
+
+    statement = statement.offset(skip).limit(limit)
     users = session.exec(statement).all()
-    return Users(data=users, count=count)
+    return Users(data=users, total=count)
 
 
 def delete_user(*, user_id: uuid.UUID, session: Session) -> None:

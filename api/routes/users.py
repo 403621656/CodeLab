@@ -1,25 +1,36 @@
 import uuid
 import crud
 
-from crud import UserNotFound, UserAlreadyExists
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, Response, Query
+from typing import Literal, Annotated
 
 from api.deps import SessionDeps
+from crud import UserNotFound, UserAlreadyExists
 from models import (
     UserPublic,
     UserCreate,
     UserRegister,
     UserUpdate,
-    UsersPublic,
-    Message
+    Message,
 )
 
 
 router = APIRouter(prefix="/users", tags=["users"])
 
 
-@router.get("/", response_model=UsersPublic)
-def read_users(*, session: SessionDeps, skip: int = 0, limit: int = 100) -> UsersPublic:
+@router.get("/", response_model=list[UserPublic])
+def read_users(
+        *,
+        response: Response,
+        session: SessionDeps,
+        _start: Annotated[int, Query(ge=0)] = 0,
+        _end: Annotated[int, Query(ge=1)] = 100,
+        page: Annotated[int, Query(ge=1)] = 1,
+        _per_page: Annotated[int, Query(ge=1, le=100)] = 100,
+        _sort: Annotated[str | None, Query()] = None,
+        _order: Literal["asc", "desc"] = "asc",
+) -> list[UserPublic]:
+
     users = crud.get_users(session=session, skip=skip, limit=limit)
     return users
 

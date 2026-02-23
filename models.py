@@ -18,7 +18,7 @@ class User(UserBase, table=True):
 
 class Users(SQLModel):
     data: list[User]
-    count: int
+    total: int
 
 
 class UserCreate(UserBase):
@@ -52,7 +52,7 @@ class UserPublic(UserBase):
 
 class UsersPublic(SQLModel):
     data: list[UserPublic]
-    count: int
+    total: int
 
 
 class Message(SQLModel):
