@@ -1,6 +1,8 @@
 import uuid
 
-from sqlmodel import SQLModel, Field
+from datetime import datetime, timezone
+from sqlmodel import SQLModel, Field, Column
+from sqlalchemy import DateTime, func
 from pydantic import EmailStr
 
 
@@ -14,6 +16,25 @@ class UserBase(SQLModel):
 class User(UserBase, table=True):
     id: uuid.UUID = Field(default_factory=uuid.uuid4, primary_key=True)
     hashed_password: str
+
+    created_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column=Column(
+            DateTime(timezone=True),
+            nullable=False,
+            server_default=func.now(),
+        ),
+    )
+
+    updated_at: datetime = Field(
+        default_factory=lambda: datetime.now(timezone.utc),
+        sa_column=Column(
+            DateTime(timezone=True),
+            nullable=False,
+            server_default=func.now(),
+            onupdate=func.now(),
+        ),
+    )
 
 
 class Users(SQLModel):
@@ -50,13 +71,23 @@ class UserPublic(UserBase):
     id: uuid.UUID
 
 
+class UserCreateResponse(UserBase):
+    id: uuid.UUID
+    created_at: datetime = Field(serialization_alias="createdAt")
+
+
+class UserUpdateResponse(UserBase):
+    id: uuid.UUID
+    updated_at: datetime = Field(serialization_alias="updatedAt")
+
+
 class UsersPublic(SQLModel):
     data: list[UserPublic]
     total: int
 
 
 class Message(SQLModel):
-    message: str
+    id: uuid.UUID
 
 
 class BearerToken(SQLModel):
