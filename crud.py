@@ -2,8 +2,9 @@ import uuid
 
 from pydantic import EmailStr
 from sqlmodel import Session, select, func
+from typing import Any, Literal
 
-from models import UserCreate, User, UserUpdate, Users
+from models import UserCreate, User, UserUpdate, Users, Message
 from core.security import get_password_hash
 
 
@@ -22,6 +23,12 @@ def get_user_by_id(*, user_id: uuid.UUID, session: Session) -> User | None:
     return db_user
 
 
+def get_user_by_ids(*, session: Session, user_ids: list[uuid.UUID]) -> list[User]:
+    statement = select(User).where(User.id.in_(user_ids))
+    users = session.exec(statement).all()
+    return users
+
+
 def get_user_by_email(*, email: EmailStr, session: Session) -> User | None:
     statement = select(User).where(User.email == email)
     db_user = session.exec(statement).first()
@@ -33,20 +40,54 @@ def get_users(
     session: Session,
     skip: int=0,
     limit: int=100,
+    sort_field: str | None =None,
+    sort_order: Literal["asc", "desc"]="asc",
+    filters: dict[str, tuple[str, Any]] | None=None,
     ) -> Users:
-    statement_count = select(func.count()).select_from(User)
-    count = session.exec(statement_count).one()
-    statement = select(User).offset(skip).limit(limit)
+    statement = select(User)
+    if filters:
+        for field_name, (operator, value) in filters.items():
+            if not hasattr(User, field_name):
+                continue
+            column = getattr(User, field_name)
+
+            if operator == "eq":
+                statement = statement.where(column == value)
+            elif operator == "ne":
+                statement = statement.where(column != value)
+            elif operator == "lt":
+                statement = statement.where(column < value)
+            elif operator == "lte":
+                statement = statement.where(column <= value)
+            elif operator == "gt":
+                statement = statement.where(column > value)
+            elif operator == "gte":
+                statement = statement.where(column >= value)
+            elif operator == "like":
+                statement = statement.where(column.ilike(f"%{value}%"))
+
+    count_statement = select(func.count()).select_from(statement)
+    count = session.exec(count_statement).one()
+
+    if sort_field and hasattr(User, sort_field):
+        column = getattr(User, sort_field)
+        if sort_order == "asc":
+            statement = statement.order_by(column.asc())
+        else:
+            statement = statement.order_by(column.desc())
+
+    statement = statement.offset(skip).limit(limit)
     users = session.exec(statement).all()
-    return Users(data=users, count=count)
+    return Users(data=users, total=count)
 
 
-def delete_user(*, user_id: uuid.UUID, session: Session) -> None:
+def delete_user(*, user_id: uuid.UUID, session: Session) -> Message:
     user_db = session.get(User, user_id)
     if not user_db:
         raise UserNotFound(user_id)
     session.delete(user_db)
     session.commit()
+    return Message(id=user_id)
 
 
 def create_user(*, user_create: UserCreate, session: Session) -> User:
