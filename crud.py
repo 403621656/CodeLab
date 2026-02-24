@@ -4,7 +4,7 @@ from pydantic import EmailStr
 from sqlmodel import Session, select, func
 from typing import Any, Literal
 
-from models import UserCreate, User, UserUpdate, Users
+from models import UserCreate, User, UserUpdate, Users, Message
 from core.security import get_password_hash
 
 
@@ -21,6 +21,12 @@ class UserAlreadyExists(Exception):
 def get_user_by_id(*, user_id: uuid.UUID, session: Session) -> User | None:
     db_user = session.get(User, user_id)
     return db_user
+
+
+def get_user_by_ids(*, session: Session, user_ids: list[uuid.UUID]) -> list[User]:
+    statement = select(User).where(User.id.in_(user_ids))
+    users = session.exec(statement).all()
+    return users
 
 
 def get_user_by_email(*, email: EmailStr, session: Session) -> User | None:
@@ -75,12 +81,13 @@ def get_users(
     return Users(data=users, total=count)
 
 
-def delete_user(*, user_id: uuid.UUID, session: Session) -> None:
+def delete_user(*, user_id: uuid.UUID, session: Session) -> Message:
     user_db = session.get(User, user_id)
     if not user_db:
         raise UserNotFound(user_id)
     session.delete(user_db)
     session.commit()
+    return Message(id=user_id)
 
 
 def create_user(*, user_create: UserCreate, session: Session) -> User:
